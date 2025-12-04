@@ -1,0 +1,5 @@
+{
+  "name": "MudirStatus",
+  "description": "An Arabic-first office status management system utilizing Gemini AI to generate professional status messages. Features a remote control interface for mobile and a high-visibility display mode for tablets.",
+  "requestFramePermissions": []
+}

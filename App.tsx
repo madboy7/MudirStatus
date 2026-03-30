@@ -3,7 +3,7 @@ import ManagerControls from './components/ManagerControls';
 import DisplayView from './components/DisplayView';
 import SetupWizard from './components/SetupWizard';
 import { OfficeStatus, StatusData } from './types';
-import { initFirebase, subscribeToStatus, updateRemoteStatus, isConfigured, clearConfig, checkConnection } from './services/firebaseService';
+import { initFirebase, subscribeToStatus, updateRemoteStatus, isConfigured, clearConfig } from './services/firebaseService';
 
 // Initial default state
 const DEFAULT_DATA: StatusData = {
@@ -15,7 +15,6 @@ const DEFAULT_DATA: StatusData = {
 const App: React.FC = () => {
   const [viewMode, setViewMode] = useState<'SELECTION' | 'MANAGER' | 'DISPLAY' | 'SETUP'>('SETUP');
   const [currentData, setCurrentData] = useState<StatusData>(DEFAULT_DATA);
-  const [isConnected, setIsConnected] = useState<boolean | null>(null);
 
   // Initialize Firebase and Subscribe on App Start
   useEffect(() => {
@@ -24,9 +23,6 @@ const App: React.FC = () => {
       initFirebase();
       setViewMode('SELECTION');
       
-      // Check connection
-      checkConnection().then(setIsConnected);
-
       // 2. Subscribe to changes
       subscribeToStatus((data) => {
         if (data && data.status) {
@@ -54,14 +50,9 @@ const App: React.FC = () => {
   // Navigation Helper
   const goBack = () => setViewMode('SELECTION');
 
-  const handleSetupComplete = async () => {
+  const handleSetupComplete = () => {
     initFirebase();
     setViewMode('SELECTION');
-    
-    // Check connection
-    const connected = await checkConnection();
-    setIsConnected(connected);
-
     subscribeToStatus((data) => {
       if (data && data.status) {
         setCurrentData(data);
@@ -69,25 +60,12 @@ const App: React.FC = () => {
     });
   };
 
-  const [showConfig, setShowConfig] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
-  const [copyStatus, setCopyStatus] = useState<'IDLE' | 'SUCCESS'>('IDLE');
 
   const handleReset = () => {
     clearConfig();
     window.location.reload();
   };
-
-  const handleCopyConfig = () => {
-    const config = localStorage.getItem('mudir_firebase_config');
-    if (config) {
-      navigator.clipboard.writeText(config);
-      setCopyStatus('SUCCESS');
-      setTimeout(() => setCopyStatus('IDLE'), 2000);
-    }
-  };
-
-  const currentConfig = JSON.parse(localStorage.getItem('mudir_firebase_config') || '{}');
 
   // --- RENDER VIEWS ---
 
@@ -102,14 +80,9 @@ const App: React.FC = () => {
           
           <div>
             <h1 className="text-3xl font-bold text-gray-800 mb-2">نظام إدارة المكتب</h1>
-            <div className="flex flex-col items-center gap-1">
-              <p className={`font-medium text-sm inline-block px-3 py-1 rounded-full ${isConnected ? 'bg-green-50 text-green-600' : isConnected === false ? 'bg-red-50 text-red-600' : 'bg-gray-50 text-gray-400'}`}>
-                ● {isConnected ? 'متصل بالنظام السحابي' : isConnected === false ? 'فشل الاتصال بالسحاب' : 'جاري الاتصال...'}
-              </p>
-              {isConnected === false && (
-                <p className="text-[10px] text-red-400 max-w-[200px]">تأكد من صحة بيانات Firebase وقواعد الحماية (Rules)</p>
-              )}
-            </div>
+            <p className="text-green-600 font-medium text-sm bg-green-50 inline-block px-3 py-1 rounded-full">
+              ● متصل بالنظام السحابي
+            </p>
           </div>
           
           <div className="space-y-4">
@@ -144,50 +117,12 @@ const App: React.FC = () => {
             </button>
           </div>
 
-          <div className="flex flex-col gap-2">
-            <button 
-              onClick={() => setShowConfig(true)}
-              className="text-xs text-blue-500 hover:text-blue-700 transition-colors"
-            >
-              عرض بيانات الاتصال الحالية
-            </button>
-            <button 
-              onClick={() => setShowResetConfirm(true)}
-              className="text-xs text-gray-400 hover:text-red-500 transition-colors"
-            >
-              إعادة ضبط إعدادات الاتصال
-            </button>
-          </div>
-
-          {showConfig && (
-            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" dir="rtl">
-              <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl text-right">
-                <h3 className="text-lg font-bold mb-4">بيانات الاتصال الحالية</h3>
-                <div className="space-y-2 text-xs font-mono bg-gray-50 p-3 rounded-lg overflow-x-auto relative group">
-                   <p><span className="font-bold text-gray-400">Project:</span> {currentConfig.projectId || 'N/A'}</p>
-                   <p><span className="font-bold text-gray-400">API Key:</span> {currentConfig.apiKey ? `${currentConfig.apiKey.substring(0, 8)}...` : 'N/A'}</p>
-                   <button 
-                    onClick={handleCopyConfig}
-                    className="absolute top-2 left-2 bg-white shadow-sm border p-1 rounded hover:bg-gray-100"
-                    title="نسخ البيانات"
-                   >
-                     {copyStatus === 'SUCCESS' ? '✓' : '📋'}
-                   </button>
-                </div>
-                <p className="text-[10px] text-gray-500 mt-4 leading-relaxed">
-                  للتزامن، يجب أن تكون هذه البيانات **متطابقة تماماً** على كلا الجهازين. يمكنك نسخ هذه البيانات وإرسالها للجهاز الآخر.
-                </p>
-                <div className="flex gap-2 mt-6">
-                  <button 
-                    onClick={() => setShowConfig(false)}
-                    className="flex-1 bg-blue-600 text-white py-2 rounded-xl font-bold"
-                  >
-                    إغلاق
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+          <button 
+            onClick={() => setShowResetConfirm(true)}
+            className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+          >
+            إعادة ضبط إعدادات الاتصال
+          </button>
 
           {showResetConfirm && (
             <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" dir="rtl">

@@ -49,13 +49,6 @@ export const clearConfig = () => {
 };
 
 /**
- * Returns the default configuration.
- */
-export const getDefaultConfig = (): FirebaseConfig => {
-  return defaultFirebaseConfig;
-};
-
-/**
  * Initializes Firebase with the config (stored or default).
  */
 export const initFirebase = (): boolean => {
@@ -84,21 +77,6 @@ export const initFirebase = (): boolean => {
     console.error("Firebase Init Failed", e);
     return false;
   }
-};
-
-/**
- * Checks if the connection to Firebase is active.
- */
-export const checkConnection = (): Promise<boolean> => {
-  if (!db) return Promise.resolve(false);
-  const connectedRef = ref(db, '.info/connected');
-  return new Promise((resolve) => {
-    onValue(connectedRef, (snap) => {
-      resolve(snap.val() === true);
-    }, { onlyOnce: true });
-    // Timeout after 3 seconds
-    setTimeout(() => resolve(false), 3000);
-  });
 };
 
 /**

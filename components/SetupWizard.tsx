@@ -69,6 +69,10 @@ const SetupWizard: React.FC<SetupWizardProps> = ({ onComplete }) => {
                 <li>اذهب إلى <a href="https://console.firebase.google.com" target="_blank" className="underline">console.firebase.google.com</a></li>
                 <li>أنشئ مشروعاً جديداً.</li>
                 <li>من القائمة اختر <b>Realtime Database</b> وأنشئ قاعدة بيانات (اختر Start in Test Mode).</li>
+                <li className="text-xs bg-gray-100 p-2 rounded mt-1 font-mono">
+                  قواعد الحماية (Rules):<br/>
+                  {`{ "rules": { ".read": true, ".write": true } }`}
+                </li>
                 <li>من إعدادات المشروع (Project Settings)، اختر الويب (Web App).</li>
                 <li>انسخ البيانات (apiKey, projectId, etc) والصقها هنا.</li>
               </ol>

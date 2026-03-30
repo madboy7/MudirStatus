@@ -113,6 +113,18 @@ const DisplayView: React.FC<DisplayViewProps> = ({ data, goBack }) => {
            </p>
         </div>
 
+        {/* SPECIAL MESSAGE ONLY FOR BUSY STATUS */}
+        {data.status === OfficeStatus.BUSY && (
+          <div className="mt-8 px-8 py-4 bg-black/30 rounded-2xl backdrop-blur-md border border-white/10 flex items-center gap-4 animate-bounce-slight">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
+            </svg>
+            <span className="text-2xl text-white font-bold">
+               في حال الضرورة يرجى إرسال رسالة نصية أو واتساب
+            </span>
+          </div>
+        )}
+
       </div>
 
       {/* Footer */}

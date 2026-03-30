@@ -1,7 +1,19 @@
 import { GoogleGenAI } from "@google/genai";
 import { OfficeStatus } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+let ai: any = null;
+
+const getAI = () => {
+  if (!ai) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    console.log('Gemini API Key status:', apiKey ? 'Set' : 'Not set');
+    if (!apiKey) {
+      throw new Error('GEMINI_API_KEY is not defined in the environment.');
+    }
+    ai = new GoogleGenAI({ apiKey });
+  }
+  return ai;
+};
 
 /**
  * Returns the hardcoded default Arabic message for a status.
@@ -29,7 +41,7 @@ export const generateStatusMessage = async (
   context: string = ""
 ): Promise<string> => {
   try {
-    const modelId = "gemini-2.5-flash"; // Using Flash for speed
+    const modelId = "gemini-flash-latest"; // Using a supported model
 
     let prompt = "";
 
@@ -63,7 +75,7 @@ export const generateStatusMessage = async (
       `;
     }
 
-    const response = await ai.models.generateContent({
+    const response = await getAI().models.generateContent({
       model: modelId,
       contents: prompt,
     });

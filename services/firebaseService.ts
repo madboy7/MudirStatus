@@ -33,6 +33,22 @@ export const saveConfig = (config: FirebaseConfig) => {
 };
 
 /**
+ * Checks if a custom Firebase configuration is stored.
+ */
+export const isConfigured = (): boolean => {
+  return !!localStorage.getItem(CONFIG_KEY);
+};
+
+/**
+ * Clears the stored configuration.
+ */
+export const clearConfig = () => {
+  localStorage.removeItem(CONFIG_KEY);
+  app = undefined;
+  db = undefined;
+};
+
+/**
  * Initializes Firebase with the config (stored or default).
  */
 export const initFirebase = (): boolean => {
@@ -86,14 +102,20 @@ export const subscribeToStatus = (callback: (data: StatusData) => void) => {
 /**
  * Updates the status in Realtime Database.
  */
-export const updateRemoteStatus = (data: StatusData) => {
+export const updateRemoteStatus = (data: StatusData): Promise<void> => {
   if (!db) {
     initFirebase();
   }
 
-  if (!db) return;
+  if (!db) {
+    return Promise.reject("Database not initialized");
+  }
 
-  set(ref(db, 'officeStatus'), data).catch((err) => {
-    console.error("Failed to update status", err);
+  return set(ref(db, 'officeStatus'), data).catch((err) => {
+    if (err.message && err.message.includes("PERMISSION_DENIED")) {
+      console.error("Firebase Permission Denied! Please check your Realtime Database rules.");
+      throw new Error("PERMISSION_DENIED: يرجى التأكد من إعدادات الحماية في Firebase (قواعد البيانات).");
+    }
+    throw err;
   });
 };

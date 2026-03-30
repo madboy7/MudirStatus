@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import ManagerControls from './components/ManagerControls';
 import DisplayView from './components/DisplayView';
+import SetupWizard from './components/SetupWizard';
 import { OfficeStatus, StatusData } from './types';
-import { initFirebase, subscribeToStatus, updateRemoteStatus } from './services/firebaseService';
+import { initFirebase, subscribeToStatus, updateRemoteStatus, isConfigured, clearConfig } from './services/firebaseService';
 
 // Initial default state
 const DEFAULT_DATA: StatusData = {
@@ -12,34 +13,65 @@ const DEFAULT_DATA: StatusData = {
 };
 
 const App: React.FC = () => {
-  const [viewMode, setViewMode] = useState<'SELECTION' | 'MANAGER' | 'DISPLAY'>('SELECTION');
+  const [viewMode, setViewMode] = useState<'SELECTION' | 'MANAGER' | 'DISPLAY' | 'SETUP'>('SETUP');
   const [currentData, setCurrentData] = useState<StatusData>(DEFAULT_DATA);
 
   // Initialize Firebase and Subscribe on App Start
   useEffect(() => {
-    // 1. Init directly
-    initFirebase();
-    
-    // 2. Subscribe to changes
-    subscribeToStatus((data) => {
-      if (data && data.status) {
-        setCurrentData(data);
-      }
-    });
+    // 1. Check if configured
+    if (isConfigured()) {
+      initFirebase();
+      setViewMode('SELECTION');
+      
+      // 2. Subscribe to changes
+      subscribeToStatus((data) => {
+        if (data && data.status) {
+          setCurrentData(data);
+        }
+      });
+    } else {
+      setViewMode('SETUP');
+    }
   }, []);
 
   // Update Handler (Sends to Firebase)
-  const updateStatus = useCallback((newData: StatusData) => {
+  const updateStatus = useCallback(async (newData: StatusData) => {
     // Optimistic update for UI responsiveness
     setCurrentData(newData);
     // Send to cloud
-    updateRemoteStatus(newData);
+    try {
+      await updateRemoteStatus(newData);
+    } catch (err) {
+      console.error("Remote update failed", err);
+      throw err;
+    }
   }, []);
 
   // Navigation Helper
   const goBack = () => setViewMode('SELECTION');
 
+  const handleSetupComplete = () => {
+    initFirebase();
+    setViewMode('SELECTION');
+    subscribeToStatus((data) => {
+      if (data && data.status) {
+        setCurrentData(data);
+      }
+    });
+  };
+
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+
+  const handleReset = () => {
+    clearConfig();
+    window.location.reload();
+  };
+
   // --- RENDER VIEWS ---
+
+  if (viewMode === 'SETUP') {
+    return <SetupWizard onComplete={handleSetupComplete} />;
+  }
 
   if (viewMode === 'SELECTION') {
     return (
@@ -84,6 +116,36 @@ const App: React.FC = () => {
               </div>
             </button>
           </div>
+
+          <button 
+            onClick={() => setShowResetConfirm(true)}
+            className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+          >
+            إعادة ضبط إعدادات الاتصال
+          </button>
+
+          {showResetConfirm && (
+            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" dir="rtl">
+              <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+                <h3 className="text-lg font-bold text-center mb-4">تأكيد إعادة الضبط</h3>
+                <p className="text-gray-600 text-center mb-6">هل أنت متأكد من رغبتك في مسح إعدادات الاتصال والبدء من جديد؟</p>
+                <div className="flex gap-3">
+                  <button 
+                    onClick={handleReset}
+                    className="flex-1 bg-red-600 text-white py-2 rounded-xl font-bold"
+                  >
+                    نعم، امسح
+                  </button>
+                  <button 
+                    onClick={() => setShowResetConfirm(false)}
+                    className="flex-1 bg-gray-100 text-gray-600 py-2 rounded-xl font-bold"
+                  >
+                    إلغاء
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );

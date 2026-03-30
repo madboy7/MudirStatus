@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { OfficeStatus, StatusData, STORAGE_KEY } from '../types';
 import { generateStatusMessage, getDefaultMessage } from '../services/geminiService';
+import { isConfigured } from '../services/firebaseService';
 
 // Icons
 const CheckIcon = () => (
@@ -23,7 +24,7 @@ const MoonIcon = () => (
 
 const PrayerIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-     <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+     <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2 2z" />
   </svg>
 );
 
@@ -51,6 +52,7 @@ const ManagerControls: React.FC<ManagerControlsProps> = ({ initialData, onUpdate
   const [isGenerating, setIsGenerating] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date(initialData.timestamp));
   const [showInstallHelp, setShowInstallHelp] = useState(false);
+  const [updateSuccess, setUpdateSuccess] = useState<boolean | null>(null);
 
   // Sync state if external changes happen
   useEffect(() => {
@@ -60,6 +62,7 @@ const ManagerControls: React.FC<ManagerControlsProps> = ({ initialData, onUpdate
 
   const handleStatusChange = async (newStatus: OfficeStatus) => {
     setStatus(newStatus);
+    setUpdateSuccess(null);
     
     let message = "";
     
@@ -78,13 +81,21 @@ const ManagerControls: React.FC<ManagerControlsProps> = ({ initialData, onUpdate
       customContext: context
     };
 
-    onUpdate(newData);
-    setLastUpdated(new Date());
-    setContext(''); // Clear context after send
+    try {
+      onUpdate(newData);
+      setUpdateSuccess(true);
+      setLastUpdated(new Date());
+      setContext(''); // Clear context after send
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setUpdateSuccess(null), 3000);
+    } catch (err) {
+      setUpdateSuccess(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center pb-8 safe-bottom">
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center pb-8 safe-bottom" dir="rtl">
       {/* Header */}
       <div className="w-full bg-white shadow-sm p-4 flex justify-between items-center sticky top-0 z-10 safe-top">
         <h1 className="text-xl font-bold text-gray-800">لوحة التحكم</h1>
@@ -104,6 +115,25 @@ const ManagerControls: React.FC<ManagerControlsProps> = ({ initialData, onUpdate
             </button>
         </div>
       </div>
+
+      {/* Connection Status Banner */}
+      {!isConfigured() && (
+        <div className="w-full bg-yellow-50 border-b border-yellow-100 p-2 text-center text-xs text-yellow-700">
+          ⚠️ النظام يعمل في الوضع المحلي فقط. لربط الأجهزة، يرجى إعداد الربط السحابي من القائمة الرئيسية.
+        </div>
+      )}
+
+      {/* Update Success Toast */}
+      {updateSuccess === true && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 bg-green-500 text-white px-4 py-2 rounded-full shadow-lg z-50 animate-bounce-slight text-sm font-bold">
+          تم تحديث الحالة بنجاح ✓
+        </div>
+      )}
+      {updateSuccess === false && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 bg-red-500 text-white px-4 py-2 rounded-full shadow-lg z-50 text-sm font-bold">
+          فشل التحديث! تأكد من الاتصال ✗
+        </div>
+      )}
 
       {/* Install Help Modal */}
       {showInstallHelp && (

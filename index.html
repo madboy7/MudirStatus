@@ -3,6 +3,27 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <script>
+      // Fix for "Uncaught TypeError: Cannot set property fetch of #<Window> which has only a getter"
+      // This happens when libraries try to polyfill fetch in environments where it's a read-only getter.
+      (function() {
+        try {
+          var originalFetch = window.fetch;
+          if (originalFetch) {
+            Object.defineProperty(window, 'fetch', {
+              configurable: true,
+              enumerable: true,
+              get: function() { return originalFetch; },
+              set: function(v) { console.warn('Attempt to overwrite fetch ignored'); }
+            });
+          }
+        } catch (e) {
+          // If the above fails, it means window.fetch is already non-configurable.
+          // We can't fix the assignment error in that case, but we can try to 
+          // ensure fetch is available globally in other ways if needed.
+        }
+      })();
+    </script>
     <title>MudirStatus - حالة المدير</title>
     
     <!-- PWA Settings for iOS -->
@@ -55,22 +76,6 @@
     </style>
   </head>
   <body>
-    <script>
-      // Ensure window.fetch is configurable to avoid errors with polyfills
-      if (window.fetch && !Object.getOwnPropertyDescriptor(window, 'fetch')?.configurable) {
-        const originalFetch = window.fetch;
-        try {
-          Object.defineProperty(window, 'fetch', {
-            value: originalFetch,
-            configurable: true,
-            writable: true,
-            enumerable: true
-          });
-        } catch (e) {
-          console.warn('Could not make window.fetch configurable', e);
-        }
-      }
-    </script>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>
